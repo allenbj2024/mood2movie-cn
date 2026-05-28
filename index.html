@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="mood2movie 中文版：根据当下心情推荐电影、生成中文片单、收藏与复制推荐。"
+    />
+    <title>mood2movie 中文版｜心情电影推荐</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="./" aria-label="返回 mood2movie 中文版首页">
+          <span class="brand-mark">M2M</span>
+          <span class="brand-text">
+            <strong>mood2movie</strong>
+            <span>中文心情片单</span>
+          </span>
+        </a>
+        <nav class="nav-actions" aria-label="页面操作">
+          <button class="ghost-button icon-button" id="favoriteToggle" type="button">
+            <span aria-hidden="true">♡</span>
+            <span>收藏</span>
+            <span class="count-pill" id="favoriteCount">0</span>
+          </button>
+          <button class="ghost-button icon-button" id="randomMood" type="button">
+            <span aria-hidden="true">↻</span>
+            <span>随机心情</span>
+          </button>
+        </nav>
+      </header>
+
+      <main>
+        <section class="home-view" id="homeView" aria-labelledby="homeTitle">
+          <div class="hero-copy">
+            <p class="eyebrow">mood2movie 中文版</p>
+            <h1 id="homeTitle">把现在的情绪，翻译成今晚的一部电影。</h1>
+            <p>
+              开心、低落、紧张、想笑、想哭、想醒一醒，都可以被一部电影温柔接住。
+            </p>
+          </div>
+
+          <section class="mood-board" aria-labelledby="moodTitle">
+            <div class="board-heading">
+              <div>
+                <p class="section-kicker">Mood Board</p>
+                <h2 id="moodTitle">此刻更接近哪一种？</h2>
+              </div>
+              <span class="board-note">18 种情绪</span>
+            </div>
+            <div class="mood-grid" id="moodGrid"></div>
+          </section>
+        </section>
+
+        <section class="recommendation-view is-hidden" id="recommendationView" aria-live="polite">
+          <div class="result-toolbar">
+            <button class="ghost-button icon-button" id="backHome" type="button">
+              <span aria-hidden="true">←</span>
+              <span>换心情</span>
+            </button>
+            <div class="mood-indicator" id="moodIndicator"></div>
+          </div>
+
+          <div class="recommendation-layout">
+            <aside class="poster-stage" aria-label="当前推荐电影海报">
+              <div class="poster-card" id="posterCard">
+                <div class="poster-noise" aria-hidden="true"></div>
+                <p id="posterMood"></p>
+                <h2 id="posterTitle"></h2>
+                <span id="posterYear"></span>
+              </div>
+              <div class="poster-controls" aria-label="切换推荐">
+                <button class="round-button" id="prevMovie" type="button" aria-label="上一部">‹</button>
+                <button class="round-button" id="shuffleMovie" type="button" aria-label="随机换一部">↻</button>
+                <button class="round-button" id="nextMovie" type="button" aria-label="下一部">›</button>
+              </div>
+            </aside>
+
+            <article class="movie-detail">
+              <div class="movie-head">
+                <div>
+                  <p class="section-kicker" id="movieRank"></p>
+                  <h2 id="movieTitle"></h2>
+                  <p class="original-title" id="movieOriginal"></p>
+                </div>
+                <button class="save-button" id="saveMovie" type="button" aria-label="收藏当前电影">
+                  <span id="saveIcon" aria-hidden="true">♡</span>
+                </button>
+              </div>
+
+              <div class="meta-row" id="movieMeta"></div>
+              <div class="genre-row" id="genreRow"></div>
+
+              <section class="reason-block" aria-labelledby="reasonTitle">
+                <h3 id="reasonTitle">为什么是它</h3>
+                <p id="movieReason"></p>
+              </section>
+
+              <section class="synopsis-block" aria-labelledby="synopsisTitle">
+                <h3 id="synopsisTitle">电影气味</h3>
+                <p id="movieSynopsis"></p>
+              </section>
+
+              <div class="action-row">
+                <a class="primary-action" id="trailerLink" target="_blank" rel="noreferrer">
+                  <span aria-hidden="true">▶</span>
+                  <span>预告片</span>
+                </a>
+                <button class="ghost-button" id="copyList" type="button">复制片单</button>
+                <button class="ghost-button" id="shareMood" type="button">复制链接</button>
+              </div>
+            </article>
+
+            <aside class="queue-panel" aria-labelledby="queueTitle">
+              <div class="queue-head">
+                <div>
+                  <p class="section-kicker">Queue</p>
+                  <h2 id="queueTitle">本组片单</h2>
+                </div>
+                <input id="movieSearch" type="search" placeholder="片名 / 类型 / 关键词" />
+              </div>
+              <div class="queue-list" id="queueList"></div>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="drawer-backdrop is-hidden" id="drawerBackdrop"></div>
+    <aside class="favorite-drawer is-hidden" id="favoriteDrawer" aria-labelledby="drawerTitle">
+      <div class="drawer-head">
+        <div>
+          <p class="section-kicker">Saved</p>
+          <h2 id="drawerTitle">我的 mood2movie 收藏</h2>
+        </div>
+        <button class="round-button" id="closeDrawer" type="button" aria-label="关闭收藏">×</button>
+      </div>
+      <div class="favorite-list" id="favoriteList"></div>
+      <button class="primary-action drawer-copy" id="copyFavorites" type="button">复制收藏片单</button>
+    </aside>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>
