@@ -208,11 +208,22 @@ function saveSettings(settings) {
 }
 
 function getApiKey() {
+  // Server-configured key takes priority over user's browser setting
+  if (window.DEEPSEEK_API_KEY && window.DEEPSEEK_API_KEY !== 'sk-your-key-here') {
+    return window.DEEPSEEK_API_KEY;
+  }
   return loadSettings().apiKey || "";
 }
 
 function getMovieCount() {
+  if (window.DEEPSEEK_MOVIE_COUNT) {
+    return parseInt(window.DEEPSEEK_MOVIE_COUNT, 10);
+  }
   return parseInt(loadSettings().movieCount || "10", 10);
+}
+
+function isServerConfigured() {
+  return window.DEEPSEEK_API_KEY && window.DEEPSEEK_API_KEY !== 'sk-your-key-here';
 }
 
 function updateAIStatus() {
@@ -225,6 +236,10 @@ function updateAIStatus() {
       elements.aiStatus.textContent = "AI 推荐未配置";
       elements.aiStatus.classList.remove("is-active");
     }
+  }
+  // Hide settings button when server has configured the key
+  if (elements.settingsBtn) {
+    elements.settingsBtn.style.display = isServerConfigured() ? "none" : "";
   }
 }
 
