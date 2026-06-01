@@ -448,27 +448,6 @@ a {
   font-size: 18px;
 }
 
-.poster-card.has-image {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-.poster-card.has-image::before {
-  z-index: 1;
-}
-
-/* Dark gradient over the poster image so text stays readable */
-.poster-card.has-image .poster-noise {
-  opacity: 1;
-  background-image: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.82) 0%,
-    rgba(0, 0, 0, 0.45) 32%,
-    rgba(0, 0, 0, 0.05) 60%,
-    transparent 100%
-  );
-}
 
 .round-button,
 .save-button {

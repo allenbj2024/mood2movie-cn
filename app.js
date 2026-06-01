@@ -224,58 +224,6 @@ function getMovieCount() {
   return parseInt(loadSettings().movieCount || "10", 10);
 }
 
-function getTmdbKey() {
-  if (window.TMDB_API_KEY && window.TMDB_API_KEY !== "your-tmdb-key-here") {
-    return window.TMDB_API_KEY;
-  }
-  return "";
-}
-
-// poster URL cache: `${title}:${year}` -> url | "" (miss)
-const posterCache = {};
-
-async function fetchPoster(film) {
-  const key = getTmdbKey();
-  if (!key) return "";
-  const cacheKey = `${film.title}:${film.year}`;
-  if (cacheKey in posterCache) return posterCache[cacheKey];
-
-  const queries = [film.original, film.title].filter(Boolean);
-  for (const q of queries) {
-    try {
-      const url = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(key)}&language=zh-CN&include_adult=true&query=${encodeURIComponent(q)}${film.year ? `&year=${film.year}` : ""}`;
-      const res = await fetch(url);
-      if (!res.ok) continue;
-      const data = await res.json();
-      const hit = (data.results || []).find((r) => r.poster_path) || {};
-      if (hit.poster_path) {
-        const posterUrl = `https://image.tmdb.org/t/p/w500${hit.poster_path}`;
-        posterCache[cacheKey] = posterUrl;
-        return posterUrl;
-      }
-    } catch {
-      // try next query
-    }
-  }
-  posterCache[cacheKey] = "";
-  return "";
-}
-
-function applyPoster(film) {
-  if (!getTmdbKey()) return;
-  fetchPoster(film).then((url) => {
-    // Only apply if still showing this film
-    if (getCurrentMovie() !== film) return;
-    if (url) {
-      elements.posterCard.style.backgroundImage = `url("${url}")`;
-      elements.posterCard.classList.add("has-image");
-    } else {
-      elements.posterCard.style.backgroundImage = "";
-      elements.posterCard.classList.remove("has-image");
-    }
-  });
-}
-
 function isServerConfigured() {
   return window.DEEPSEEK_API_KEY && window.DEEPSEEK_API_KEY !== 'sk-your-key-here';
 }
@@ -573,11 +521,6 @@ function renderMovie() {
   elements.movieRank.textContent = `${state.index + 1} / ${list.length}`;
   elements.movieTitle.textContent = film.title;
   elements.movieOriginal.textContent = film.original;
-
-  // Reset poster image, then async-load real poster from TMDB
-  elements.posterCard.style.backgroundImage = "";
-  elements.posterCard.classList.remove("has-image");
-  applyPoster(film);
 
   // Director & cast (credits)
   if (elements.movieCredits) {
