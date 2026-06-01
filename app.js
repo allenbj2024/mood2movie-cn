@@ -158,6 +158,7 @@ const elements = {
   movieReason: document.querySelector("#movieReason"),
   movieSynopsis: document.querySelector("#movieSynopsis"),
   trailerLink: document.querySelector("#trailerLink"),
+  doubanLink: document.querySelector("#doubanLink"),
   saveMovie: document.querySelector("#saveMovie"),
   saveIcon: document.querySelector("#saveIcon"),
   queueList: document.querySelector("#queueList"),
@@ -518,6 +519,17 @@ function renderMovie() {
   elements.movieReason.textContent = film.reason;
   elements.movieSynopsis.textContent = film.synopsis;
   elements.trailerLink.href = trailerUrl(film);
+  if (elements.doubanLink) elements.doubanLink.href = doubanUrl(film);
+
+  // Poster and title click through to Douban movie page
+  const douban = doubanUrl(film);
+  elements.posterCard.style.cursor = "pointer";
+  elements.posterCard.title = "在豆瓣查看《" + film.title + "》";
+  elements.posterCard.onclick = () => window.open(douban, "_blank", "noreferrer");
+  elements.movieTitle.style.cursor = "pointer";
+  elements.movieTitle.title = "在豆瓣查看《" + film.title + "》";
+  elements.movieTitle.onclick = () => window.open(douban, "_blank", "noreferrer");
+
   elements.saveMovie.classList.toggle("is-saved", favorite);
   elements.saveIcon.textContent = favorite ? "♥" : "♡";
 
@@ -756,6 +768,10 @@ function saveFavorites() {
 
 function trailerUrl(film) {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${film.original || film.title} official trailer`)}`;
+}
+
+function doubanUrl(film) {
+  return `https://search.douban.com/movie/subject_search?search_text=${encodeURIComponent(film.title)}`;
 }
 
 function pageBase() {
