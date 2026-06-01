@@ -448,6 +448,28 @@ a {
   font-size: 18px;
 }
 
+.poster-card.has-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.poster-card.has-image::before {
+  z-index: 1;
+}
+
+/* Dark gradient over the poster image so text stays readable */
+.poster-card.has-image .poster-noise {
+  opacity: 1;
+  background-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.82) 0%,
+    rgba(0, 0, 0, 0.45) 32%,
+    rgba(0, 0, 0, 0.05) 60%,
+    transparent 100%
+  );
+}
+
 .round-button,
 .save-button {
   display: grid;
@@ -500,6 +522,28 @@ a {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 20px;
+}
+
+.credits-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.credit-line {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.credit-label {
+  display: inline-block;
+  min-width: 44px;
+  margin-right: 10px;
+  color: var(--soft);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .meta-chip,

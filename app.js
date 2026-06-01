@@ -154,6 +154,7 @@ const elements = {
   movieTitle: document.querySelector("#movieTitle"),
   movieOriginal: document.querySelector("#movieOriginal"),
   movieMeta: document.querySelector("#movieMeta"),
+  movieCredits: document.querySelector("#movieCredits"),
   genreRow: document.querySelector("#genreRow"),
   movieReason: document.querySelector("#movieReason"),
   movieSynopsis: document.querySelector("#movieSynopsis"),
@@ -221,6 +222,58 @@ function getMovieCount() {
     return parseInt(window.DEEPSEEK_MOVIE_COUNT, 10);
   }
   return parseInt(loadSettings().movieCount || "10", 10);
+}
+
+function getTmdbKey() {
+  if (window.TMDB_API_KEY && window.TMDB_API_KEY !== "your-tmdb-key-here") {
+    return window.TMDB_API_KEY;
+  }
+  return "";
+}
+
+// poster URL cache: `${title}:${year}` -> url | "" (miss)
+const posterCache = {};
+
+async function fetchPoster(film) {
+  const key = getTmdbKey();
+  if (!key) return "";
+  const cacheKey = `${film.title}:${film.year}`;
+  if (cacheKey in posterCache) return posterCache[cacheKey];
+
+  const queries = [film.original, film.title].filter(Boolean);
+  for (const q of queries) {
+    try {
+      const url = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(key)}&language=zh-CN&include_adult=true&query=${encodeURIComponent(q)}${film.year ? `&year=${film.year}` : ""}`;
+      const res = await fetch(url);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const hit = (data.results || []).find((r) => r.poster_path) || {};
+      if (hit.poster_path) {
+        const posterUrl = `https://image.tmdb.org/t/p/w500${hit.poster_path}`;
+        posterCache[cacheKey] = posterUrl;
+        return posterUrl;
+      }
+    } catch {
+      // try next query
+    }
+  }
+  posterCache[cacheKey] = "";
+  return "";
+}
+
+function applyPoster(film) {
+  if (!getTmdbKey()) return;
+  fetchPoster(film).then((url) => {
+    // Only apply if still showing this film
+    if (getCurrentMovie() !== film) return;
+    if (url) {
+      elements.posterCard.style.backgroundImage = `url("${url}")`;
+      elements.posterCard.classList.add("has-image");
+    } else {
+      elements.posterCard.style.backgroundImage = "";
+      elements.posterCard.classList.remove("has-image");
+    }
+  });
 }
 
 function isServerConfigured() {
@@ -359,6 +412,8 @@ async function fetchAIRecommendations(moodId) {
     "country": "出品国家/地区",
     "runtime": "时长 分钟",
     "rating": 豆瓣或IMDb评分数字,
+    "director": "导演姓名（中文译名）",
+    "cast": ["主演1", "主演2", "主演3"],
     "genres": ["类型1", "类型2", "类型3"],
     "reason": "一句话说明为什么这部电影适合${mood.label}的心情（40字以内，有温度有洞察）",
     "synopsis": "一句话电影气味/氛围描述（40字以内，诗意感性）",
@@ -408,6 +463,8 @@ async function fetchAIRecommendations(moodId) {
       country: String(f.country || ""),
       runtime: String(f.runtime || ""),
       rating: parseFloat(f.rating) || 0,
+      director: String(f.director || ""),
+      cast: Array.isArray(f.cast) ? f.cast.map(String) : [],
       genres: Array.isArray(f.genres) ? f.genres.map(String) : [],
       reason: String(f.reason || ""),
       synopsis: String(f.synopsis || ""),
@@ -516,6 +573,20 @@ function renderMovie() {
   elements.movieRank.textContent = `${state.index + 1} / ${list.length}`;
   elements.movieTitle.textContent = film.title;
   elements.movieOriginal.textContent = film.original;
+
+  // Reset poster image, then async-load real poster from TMDB
+  elements.posterCard.style.backgroundImage = "";
+  elements.posterCard.classList.remove("has-image");
+  applyPoster(film);
+
+  // Director & cast (credits)
+  if (elements.movieCredits) {
+    const parts = [];
+    if (film.director) parts.push(`<span class="credit-line"><span class="credit-label">导演</span>${film.director}</span>`);
+    if (film.cast && film.cast.length) parts.push(`<span class="credit-line"><span class="credit-label">主演</span>${film.cast.join(" / ")}</span>`);
+    elements.movieCredits.innerHTML = parts.join("");
+    elements.movieCredits.style.display = parts.length ? "" : "none";
+  }
   elements.movieReason.textContent = film.reason;
   elements.movieSynopsis.textContent = film.synopsis;
   elements.trailerLink.href = trailerUrl(film);
