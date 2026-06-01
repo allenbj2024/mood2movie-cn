@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="mood2movie 中文版：根据当下心情推荐电影、生成中文片单、收藏与复制推荐。"
+      content="mood2movie 中文版：接入 DeepSeek AI，根据当下心情智能推荐电影、生成中文片单、收藏与复制推荐。"
     />
     <title>mood2movie 中文版｜心情电影推荐</title>
     <link rel="stylesheet" href="./styles.css" />
@@ -22,6 +22,11 @@
           </span>
         </a>
         <nav class="nav-actions" aria-label="页面操作">
+          <span class="ai-status" id="aiStatus">AI 推荐未配置</span>
+          <button class="ghost-button icon-button" id="settingsBtn" type="button" title="配置 DeepSeek API">
+            <span aria-hidden="true">⚙</span>
+            <span>AI 设置</span>
+          </button>
           <button class="ghost-button icon-button" id="favoriteToggle" type="button">
             <span aria-hidden="true">♡</span>
             <span>收藏</span>
@@ -37,10 +42,10 @@
       <main>
         <section class="home-view" id="homeView" aria-labelledby="homeTitle">
           <div class="hero-copy">
-            <p class="eyebrow">mood2movie 中文版</p>
+            <p class="eyebrow">mood2movie 中文版 × DeepSeek AI</p>
             <h1 id="homeTitle">把现在的情绪，翻译成今晚的一部电影。</h1>
             <p>
-              开心、低落、紧张、想笑、想哭、想醒一醒，都可以被一部电影温柔接住。
+              开心、低落、紧张、想笑、想哭、想醒一醒，都可以被一部电影温柔接住。接入 DeepSeek AI，每次推荐都是全新片单。
             </p>
           </div>
 
@@ -63,6 +68,10 @@
               <span>换心情</span>
             </button>
             <div class="mood-indicator" id="moodIndicator"></div>
+            <button class="ghost-button icon-button refresh-btn" id="refreshAI" type="button" title="重新用 AI 生成推荐">
+              <span aria-hidden="true">✦</span>
+              <span>AI 换一批</span>
+            </button>
           </div>
 
           <div class="recommendation-layout">
@@ -128,6 +137,68 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="loading-overlay is-hidden" id="loadingOverlay" aria-live="polite">
+      <div class="loading-card">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <p>DeepSeek AI 正在为你选片…</p>
+        <span>根据心情智能匹配，稍等片刻</span>
+      </div>
+    </div>
+
+    <!-- Settings modal overlay -->
+    <div class="settings-overlay is-hidden" id="settingsOverlay"></div>
+    <div class="settings-modal is-hidden" id="settingsModal" role="dialog" aria-labelledby="settingsTitle">
+      <div class="settings-head">
+        <div>
+          <p class="section-kicker">AI 配置</p>
+          <h2 id="settingsTitle">接入 DeepSeek</h2>
+        </div>
+        <button class="round-button" id="settingsClose" type="button" aria-label="关闭设置">×</button>
+      </div>
+
+      <div class="settings-body">
+        <div class="settings-field">
+          <label for="apiKeyInput">DeepSeek API Key</label>
+          <p class="settings-hint">在 <strong>platform.deepseek.com</strong> 获取你的 API Key，Key 仅保存在本地浏览器。</p>
+          <input
+            type="password"
+            id="apiKeyInput"
+            placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="settings-field">
+          <label for="movieCountInput">
+            每次推荐电影数量：<strong id="movieCountDisplay">10</strong> 部
+          </label>
+          <p class="settings-hint">数量越多，AI 思考时间越长。建议 8–15 部。</p>
+          <input
+            type="range"
+            id="movieCountInput"
+            min="5"
+            max="20"
+            value="10"
+            step="1"
+          />
+          <div class="range-labels">
+            <span>5 部</span>
+            <span>20 部</span>
+          </div>
+        </div>
+
+        <div class="settings-info">
+          <p>✦ 配置后选择心情时，AI 会自动生成专属片单</p>
+          <p>✦ 未配置时使用内置精选电影库（18种心情 × 4部）</p>
+          <p>✦ 每种心情的 AI 推荐会缓存到本次会话，点击「AI 换一批」可重新生成</p>
+        </div>
+      </div>
+
+      <button class="primary-action settings-save" id="saveSettings" type="button">保存设置</button>
     </div>
 
     <div class="drawer-backdrop is-hidden" id="drawerBackdrop"></div>

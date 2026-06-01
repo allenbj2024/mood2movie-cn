@@ -175,6 +175,41 @@ a {
   position: relative;
 }
 
+.ai-status {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  border-radius: 999px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--soft);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 200ms, color 200ms;
+}
+
+.ai-status.is-active {
+  background: rgba(243, 179, 91, 0.15);
+  color: var(--gold);
+}
+
+.ai-badge {
+  display: inline-block;
+  margin-left: 6px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  background: rgba(243, 179, 91, 0.18);
+  color: var(--gold);
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
+.refresh-btn {
+  flex: 0 0 auto;
+}
+
 .count-pill {
   min-width: 24px;
   border-radius: 999px;
@@ -773,4 +808,186 @@ a {
   .nav-actions .ghost-button span:nth-child(2) {
     display: none;
   }
+
+  .ai-status {
+    display: none;
+  }
+}
+
+/* ── Loading overlay ── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 7, 10, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.loading-card {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 40px 48px;
+  background: var(--panel-strong);
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.loading-card p {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.loading-card span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(243, 179, 91, 0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Settings modal ── */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  background: rgba(8, 7, 10, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.settings-modal {
+  position: fixed;
+  z-index: 13;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, calc(100% - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow);
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.settings-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.settings-body {
+  display: grid;
+  gap: 24px;
+}
+
+.settings-field {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-field label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.settings-hint {
+  margin: 0;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings-field input[type="password"] {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-size: 14px;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 150ms;
+}
+
+.settings-field input[type="password"]:focus {
+  border-color: rgba(243, 179, 91, 0.72);
+}
+
+.settings-field input[type="range"] {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  outline: none;
+  cursor: pointer;
+}
+
+.settings-field input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--soft);
+  font-size: 12px;
+}
+
+.settings-info {
+  border: 1px solid rgba(243, 179, 91, 0.2);
+  border-radius: 10px;
+  padding: 16px;
+  background: rgba(243, 179, 91, 0.06);
+}
+
+.settings-info p {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings-info p:last-child {
+  margin-bottom: 0;
+}
+
+.settings-save {
+  width: 100%;
+  margin-top: 24px;
+  font-size: 16px;
 }

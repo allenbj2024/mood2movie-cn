@@ -19,7 +19,7 @@ const moods = [
   ["playful", "顽皮", "想要一点轻快胡闹", "☆", "#d6a54f"],
 ].map(([id, label, line, glyph, color]) => ({ id, label, line, glyph, color }));
 
-const movieData = {
+const fallbackMovieData = {
   cheerful: [
     movie("3idiots", "三傻大闹宝莱坞", "3 Idiots", 2009, "印度", "170 分钟", 9.2, ["喜剧", "青春", "励志"], "笑声很密，但不是空心的热闹。它会把你从焦虑里拽出来，再轻轻提醒你：别把人生交给排名。", "三个工程学院好友用莽撞、真诚和反叛，拆开成功学的硬壳。看完之后，开心里会多一点勇气。", "#e0a249"),
     movie("intouchables", "触不可及", "Intouchables", 2011, "法国", "112 分钟", 9.3, ["喜剧", "友情", "治愈"], "它的快乐带着尊严，不需要假装世界没坏过。两个完全不同的人互相照亮，适合把心情扶正。", "富翁与护工之间的友情，从冲撞开始，逐渐长成一种松弛、好笑又扎实的陪伴。", "#5ea0a5"),
@@ -130,11 +130,15 @@ const movieData = {
   ],
 };
 
+// AI-generated movie cache: moodId -> movie[]
+const aiMovieCache = {};
+
 const state = {
   moodId: null,
   index: 0,
   favorites: loadFavorites(),
   search: "",
+  aiLoading: false,
 };
 
 const elements = {
@@ -164,6 +168,17 @@ const elements = {
   drawerBackdrop: document.querySelector("#drawerBackdrop"),
   favoriteList: document.querySelector("#favoriteList"),
   toast: document.querySelector("#toast"),
+  aiStatus: document.querySelector("#aiStatus"),
+  settingsBtn: document.querySelector("#settingsBtn"),
+  settingsModal: document.querySelector("#settingsModal"),
+  settingsClose: document.querySelector("#settingsClose"),
+  settingsOverlay: document.querySelector("#settingsOverlay"),
+  apiKeyInput: document.querySelector("#apiKeyInput"),
+  movieCountInput: document.querySelector("#movieCountInput"),
+  movieCountDisplay: document.querySelector("#movieCountDisplay"),
+  saveSettings: document.querySelector("#saveSettings"),
+  refreshAI: document.querySelector("#refreshAI"),
+  loadingOverlay: document.querySelector("#loadingOverlay"),
 };
 
 init();
@@ -173,10 +188,44 @@ function init() {
   bindEvents();
   syncFromRoute();
   renderFavorites();
+  updateAIStatus();
 }
 
 function movie(id, title, original, year, country, runtime, rating, genres, reason, synopsis, accent) {
   return { id, title, original, year, country, runtime, rating, genres, reason, synopsis, accent };
+}
+
+function loadSettings() {
+  try {
+    return JSON.parse(localStorage.getItem("mood2movie:settings") || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveSettings(settings) {
+  localStorage.setItem("mood2movie:settings", JSON.stringify(settings));
+}
+
+function getApiKey() {
+  return loadSettings().apiKey || "";
+}
+
+function getMovieCount() {
+  return parseInt(loadSettings().movieCount || "10", 10);
+}
+
+function updateAIStatus() {
+  const key = getApiKey();
+  if (elements.aiStatus) {
+    if (key) {
+      elements.aiStatus.textContent = "✦ AI 推荐已开启";
+      elements.aiStatus.classList.add("is-active");
+    } else {
+      elements.aiStatus.textContent = "AI 推荐未配置";
+      elements.aiStatus.classList.remove("is-active");
+    }
+  }
 }
 
 function bindEvents() {
@@ -208,8 +257,166 @@ function bindEvents() {
   elements.drawerBackdrop.addEventListener("click", closeDrawer);
   document.querySelector("#copyFavorites").addEventListener("click", copyFavorites);
 
+  // Settings
+  elements.settingsBtn.addEventListener("click", openSettings);
+  elements.settingsClose.addEventListener("click", closeSettings);
+  elements.settingsOverlay.addEventListener("click", closeSettings);
+  elements.saveSettings.addEventListener("click", applySettings);
+
+  elements.movieCountInput.addEventListener("input", () => {
+    elements.movieCountDisplay.textContent = elements.movieCountInput.value;
+  });
+
+  // Refresh AI recommendations
+  elements.refreshAI.addEventListener("click", () => {
+    if (!getApiKey()) {
+      openSettings();
+      return;
+    }
+    if (state.moodId) {
+      delete aiMovieCache[state.moodId];
+      fetchAIRecommendations(state.moodId);
+    }
+  });
+
   window.addEventListener("popstate", syncFromRoute);
   window.addEventListener("hashchange", syncFromRoute);
+}
+
+function openSettings() {
+  const settings = loadSettings();
+  elements.apiKeyInput.value = settings.apiKey || "";
+  const count = parseInt(settings.movieCount || "10", 10);
+  elements.movieCountInput.value = count;
+  elements.movieCountDisplay.textContent = count;
+  elements.settingsModal.classList.remove("is-hidden");
+  elements.settingsOverlay.classList.remove("is-hidden");
+  elements.apiKeyInput.focus();
+}
+
+function closeSettings() {
+  elements.settingsModal.classList.add("is-hidden");
+  elements.settingsOverlay.classList.add("is-hidden");
+}
+
+function applySettings() {
+  const settings = {
+    apiKey: elements.apiKeyInput.value.trim(),
+    movieCount: elements.movieCountInput.value,
+  };
+  saveSettings(settings);
+  closeSettings();
+  updateAIStatus();
+  // Clear cache so new settings take effect
+  Object.keys(aiMovieCache).forEach((key) => delete aiMovieCache[key]);
+  if (state.moodId && settings.apiKey) {
+    fetchAIRecommendations(state.moodId);
+  }
+  showToast("设置已保存");
+}
+
+async function fetchAIRecommendations(moodId) {
+  const apiKey = getApiKey();
+  if (!apiKey) return;
+
+  const mood = moods.find((m) => m.id === moodId);
+  if (!mood) return;
+
+  const count = getMovieCount();
+  state.aiLoading = true;
+  showLoadingOverlay(true);
+
+  const prompt = `你是一位资深电影策展人，精通全球电影。
+请根据心情"${mood.label}"（${mood.line}），推荐 ${count} 部适合这种情绪的电影。
+要求：
+- 涵盖不同年代、不同国家，尽量多样
+- 包含经典佳作和近年好片
+- 每部电影提供真实准确的信息
+
+请严格按照以下 JSON 数组格式返回，不要有任何多余文字：
+[
+  {
+    "id": "英文小写id无空格",
+    "title": "中文译名",
+    "original": "原版片名（英文或原语言）",
+    "year": 上映年份数字,
+    "country": "出品国家/地区",
+    "runtime": "时长 分钟",
+    "rating": 豆瓣或IMDb评分数字,
+    "genres": ["类型1", "类型2", "类型3"],
+    "reason": "一句话说明为什么这部电影适合${mood.label}的心情（40字以内，有温度有洞察）",
+    "synopsis": "一句话电影气味/氛围描述（40字以内，诗意感性）",
+    "accent": "十六进制颜色代码，体现电影整体色调，如#8b7b62"
+  }
+]`;
+
+  try {
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.9,
+        max_tokens: 4000,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "";
+
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error("响应格式异常");
+
+    const films = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(films) || films.length === 0) throw new Error("电影列表为空");
+
+    const normalized = films.map((f) => ({
+      id: String(f.id || Math.random().toString(36).slice(2)),
+      title: String(f.title || "未知"),
+      original: String(f.original || ""),
+      year: parseInt(f.year, 10) || 2000,
+      country: String(f.country || ""),
+      runtime: String(f.runtime || ""),
+      rating: parseFloat(f.rating) || 0,
+      genres: Array.isArray(f.genres) ? f.genres.map(String) : [],
+      reason: String(f.reason || ""),
+      synopsis: String(f.synopsis || ""),
+      accent: /^#[0-9a-fA-F]{6}$/.test(f.accent) ? f.accent : "#8b7b62",
+    }));
+
+    aiMovieCache[moodId] = normalized;
+
+    if (state.moodId === moodId) {
+      state.index = 0;
+      renderMovie();
+      renderQueue();
+      showToast(`✦ AI 已为你推荐 ${normalized.length} 部电影`);
+    }
+  } catch (err) {
+    console.error("DeepSeek API error:", err);
+    showToast(`AI 推荐失败：${err.message}`);
+  } finally {
+    state.aiLoading = false;
+    showLoadingOverlay(false);
+  }
+}
+
+function showLoadingOverlay(show) {
+  elements.loadingOverlay.classList.toggle("is-hidden", !show);
 }
 
 function renderMoodGrid() {
@@ -227,9 +434,9 @@ function renderMoodGrid() {
 
 function syncFromRoute() {
   const routedMood = readMoodFromRoute();
-  if (routedMood && movieData[routedMood]) {
+  if (routedMood && (fallbackMovieData[routedMood] || moods.find((m) => m.id === routedMood))) {
     state.moodId = routedMood;
-    state.index = clampIndex(state.index, movieData[routedMood].length);
+    state.index = clampIndex(state.index, getCurrentList().length);
   } else {
     state.moodId = null;
     state.index = 0;
@@ -254,6 +461,11 @@ function goToMood(moodId, updateRoute = false) {
     location.hash = `/movies/${moodId}`;
   }
   render();
+
+  // Fetch AI recommendations if API key is set and not cached
+  if (getApiKey() && !aiMovieCache[moodId]) {
+    fetchAIRecommendations(moodId);
+  }
 }
 
 function render() {
@@ -274,11 +486,13 @@ function render() {
 function renderMovie() {
   const mood = getMood();
   const list = getCurrentList();
+  if (!list.length) return;
   const film = list[state.index];
   const favorite = isFavorite(film);
+  const isAI = !!aiMovieCache[state.moodId];
 
   document.title = `${mood.label}时看《${film.title}》｜mood2movie 中文版`;
-  elements.moodIndicator.textContent = `${mood.glyph} ${mood.label}：${mood.line}`;
+  elements.moodIndicator.innerHTML = `${mood.glyph} ${mood.label}：${mood.line}${isAI ? ' <span class="ai-badge">✦ AI</span>' : ""}`;
   elements.posterCard.style.setProperty("--accent", film.accent);
   elements.posterMood.textContent = `mood2movie · ${mood.label}`;
   elements.posterTitle.textContent = film.title;
@@ -296,8 +510,8 @@ function renderMovie() {
     `${film.year}`,
     film.country,
     film.runtime,
-    `豆瓣参考 ${film.rating}`,
-  ], "meta-chip");
+    film.rating ? `评分 ${film.rating}` : "",
+  ].filter(Boolean), "meta-chip");
   renderChips(elements.genreRow, film.genres, "genre-chip");
   renderFavoriteCount();
 }
@@ -337,7 +551,7 @@ function renderQueue() {
     item.className = `queue-item${index === state.index ? " is-active" : ""}`;
     item.innerHTML = `
       <span class="mini-poster" style="--accent:${film.accent}">${film.year.toString().slice(2)}</span>
-      <span><strong>${film.title}</strong><span>${film.genres.join(" · ")} · ${film.rating}</span></span>
+      <span><strong>${film.title}</strong><span>${film.genres.join(" · ")} · ${film.rating || ""}</span></span>
     `;
     item.addEventListener("click", () => {
       state.index = index;
@@ -495,7 +709,10 @@ function getMood() {
 }
 
 function getCurrentList() {
-  return movieData[state.moodId] || movieData.cheerful;
+  if (state.moodId && aiMovieCache[state.moodId]) {
+    return aiMovieCache[state.moodId];
+  }
+  return fallbackMovieData[state.moodId] || fallbackMovieData.cheerful;
 }
 
 function getCurrentMovie() {
