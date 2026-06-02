@@ -448,6 +448,29 @@ a {
   font-size: 18px;
 }
 
+.poster-card.has-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.poster-card.has-image::before {
+  z-index: 1;
+}
+
+/* Dark gradient over the poster image so text stays readable */
+.poster-card.has-image .poster-noise {
+  opacity: 1;
+  background-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.82) 0%,
+    rgba(0, 0, 0, 0.45) 32%,
+    rgba(0, 0, 0, 0.05) 60%,
+    transparent 100%
+  );
+}
+
+
 .round-button,
 .save-button {
   display: grid;
@@ -500,6 +523,28 @@ a {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 20px;
+}
+
+.credits-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.credit-line {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.credit-label {
+  display: inline-block;
+  min-width: 44px;
+  margin-right: 10px;
+  color: var(--soft);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .meta-chip,
@@ -991,3 +1036,95 @@ a {
   margin-top: 24px;
   font-size: 16px;
 }
+
+/* ── AI loading badge (inline, non-blocking) ── */
+.ai-badge.is-loading {
+  background: rgba(243, 179, 91, 0.14);
+  animation: badgePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+/* ── Disabled ghost button (原创剧本，无原著) ── */
+.ghost-button.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* ── Footer signature ── */
+.site-footer {
+  margin-top: 40px;
+  padding: 24px 0 8px;
+  text-align: center;
+}
+
+.author-credit {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--soft);
+  font-size: 13px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.author-credit:hover {
+  background: rgba(243, 179, 91, 0.14);
+  color: var(--text);
+}
+
+.author-credit strong { color: var(--text); }
+.author-credit span { color: var(--gold); }
+
+/* ── Author / 小红书 modal ── */
+.author-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 14;
+  background: rgba(8, 7, 10, 0.66);
+  backdrop-filter: blur(4px);
+}
+
+.author-modal {
+  position: fixed;
+  z-index: 15;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, calc(100% - 32px));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  background: var(--panel-strong);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.author-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+}
+
+.author-card-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.author-tip {
+  margin: 14px 4px 4px;
+  color: var(--soft);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.author-tip strong { color: var(--gold); }
