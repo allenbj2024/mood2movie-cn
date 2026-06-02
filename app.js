@@ -537,6 +537,10 @@ function syncFromRoute() {
   if (routedMood && (fallbackMovieData[routedMood] || moods.find((m) => m.id === routedMood))) {
     state.moodId = routedMood;
     state.index = clampIndex(state.index, getCurrentList().length);
+    // Also load AI on direct link / refresh, not only on mood-card clicks
+    if (getApiKey() && !aiMovieCache[routedMood]) {
+      fetchAIRecommendations(routedMood);
+    }
   } else {
     state.moodId = null;
     state.index = 0;
