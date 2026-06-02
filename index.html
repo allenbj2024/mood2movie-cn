@@ -120,7 +120,7 @@
                   <span aria-hidden="true">▶</span>
                   <span>去豆瓣看片</span>
                 </a>
-                <a class="ghost-button" id="trailerLink" target="_blank" rel="noreferrer">预告片</a>
+                <a class="ghost-button" id="bookLink" target="_blank" rel="noreferrer">原著</a>
                 <button class="ghost-button" id="copyList" type="button">复制片单</button>
                 <button class="ghost-button" id="shareMood" type="button">复制链接</button>
               </div>
@@ -139,6 +139,20 @@
           </div>
         </section>
       </main>
+
+      <footer class="site-footer">
+        <button class="author-credit" id="authorBtn" type="button">
+          由 <strong>A.I. Allen</strong> 制作 · 小红书 <span>@silicongravi_ai</span>
+        </button>
+      </footer>
+    </div>
+
+    <!-- Author / 小红书 modal -->
+    <div class="author-overlay is-hidden" id="authorOverlay"></div>
+    <div class="author-modal is-hidden" id="authorModal" role="dialog" aria-label="关注作者小红书">
+      <button class="round-button author-close" id="authorClose" type="button" aria-label="关闭">×</button>
+      <img class="author-card-img" src="./assets/author-red.jpg" alt="A.I. Allen 的小红书二维码名片" onerror="this.style.display='none'" />
+      <p class="author-tip">扫码，或在小红书搜索「<strong>silicongravi_ai</strong>」找到我</p>
     </div>
 
     <!-- Loading overlay -->

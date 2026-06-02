@@ -158,7 +158,7 @@ const elements = {
   genreRow: document.querySelector("#genreRow"),
   movieReason: document.querySelector("#movieReason"),
   movieSynopsis: document.querySelector("#movieSynopsis"),
-  trailerLink: document.querySelector("#trailerLink"),
+  bookLink: document.querySelector("#bookLink"),
   doubanLink: document.querySelector("#doubanLink"),
   saveMovie: document.querySelector("#saveMovie"),
   saveIcon: document.querySelector("#saveIcon"),
@@ -181,6 +181,10 @@ const elements = {
   saveSettings: document.querySelector("#saveSettings"),
   refreshAI: document.querySelector("#refreshAI"),
   loadingOverlay: document.querySelector("#loadingOverlay"),
+  authorBtn: document.querySelector("#authorBtn"),
+  authorOverlay: document.querySelector("#authorOverlay"),
+  authorModal: document.querySelector("#authorModal"),
+  authorClose: document.querySelector("#authorClose"),
 };
 
 init();
@@ -352,8 +356,23 @@ function bindEvents() {
     }
   });
 
+  // Author / 小红书
+  if (elements.authorBtn) elements.authorBtn.addEventListener("click", openAuthor);
+  if (elements.authorClose) elements.authorClose.addEventListener("click", closeAuthor);
+  if (elements.authorOverlay) elements.authorOverlay.addEventListener("click", closeAuthor);
+
   window.addEventListener("popstate", syncFromRoute);
   window.addEventListener("hashchange", syncFromRoute);
+}
+
+function openAuthor() {
+  elements.authorModal.classList.remove("is-hidden");
+  elements.authorOverlay.classList.remove("is-hidden");
+}
+
+function closeAuthor() {
+  elements.authorModal.classList.add("is-hidden");
+  elements.authorOverlay.classList.add("is-hidden");
 }
 
 function openSettings() {
@@ -396,8 +415,7 @@ async function fetchAIRecommendations(moodId) {
   if (!mood) return;
 
   const count = getMovieCount();
-  state.aiLoading = true;
-  showLoadingOverlay(true);
+  setAILoading(true);
 
   const prompt = `你是一位资深电影策展人，精通全球电影。
 请根据心情"${mood.label}"（${mood.line}），推荐 ${count} 部适合这种情绪的电影。
@@ -421,6 +439,7 @@ async function fetchAIRecommendations(moodId) {
     "genres": ["类型1", "类型2", "类型3"],
     "reason": "一句话说明为什么这部电影适合${mood.label}的心情（40字以内，有温度有洞察）",
     "synopsis": "一句话电影气味/氛围描述（40字以内，诗意感性）",
+    "book": "若改编自书籍/小说，填原著书名（不带书名号）；若为原创剧本，填空字符串",
     "accent": "十六进制颜色代码，体现电影整体色调，如#8b7b62"
   }
 ]`;
@@ -472,6 +491,7 @@ async function fetchAIRecommendations(moodId) {
       genres: Array.isArray(f.genres) ? f.genres.map(String) : [],
       reason: String(f.reason || ""),
       synopsis: String(f.synopsis || ""),
+      book: String(f.book || ""),
       accent: /^#[0-9a-fA-F]{6}$/.test(f.accent) ? f.accent : "#8b7b62",
     }));
 
@@ -487,13 +507,16 @@ async function fetchAIRecommendations(moodId) {
     console.error("DeepSeek API error:", err);
     showToast(`AI 推荐失败：${err.message}`);
   } finally {
-    state.aiLoading = false;
-    showLoadingOverlay(false);
+    setAILoading(false);
   }
 }
 
-function showLoadingOverlay(show) {
-  elements.loadingOverlay.classList.toggle("is-hidden", !show);
+// Non-blocking AI loading: users can browse the fallback list while the
+// AI片单 generates in the background; an inline badge shows progress.
+function setAILoading(on) {
+  state.aiLoading = on;
+  if (elements.refreshAI) elements.refreshAI.classList.toggle("is-loading", on);
+  if (state.moodId) renderMovie();
 }
 
 function renderMoodGrid() {
@@ -541,6 +564,7 @@ function goToMood(moodId, updateRoute = false) {
 
   // Fetch AI recommendations if API key is set and not cached
   if (getApiKey() && !aiMovieCache[moodId]) {
+    showToast("✦ AI 正在生成专属片单，可先浏览精选");
     fetchAIRecommendations(moodId);
   }
 }
@@ -569,7 +593,8 @@ function renderMovie() {
   const isAI = !!aiMovieCache[state.moodId];
 
   document.title = `${mood.label}时看《${film.title}》｜mood2movie 中文版`;
-  elements.moodIndicator.innerHTML = `${mood.glyph} ${mood.label}：${mood.line}${isAI ? ' <span class="ai-badge">✦ AI</span>' : ""}`;
+  const loadingBadge = state.aiLoading ? ' <span class="ai-badge is-loading">✦ AI 生成中…</span>' : "";
+  elements.moodIndicator.innerHTML = `${mood.glyph} ${mood.label}：${mood.line}${isAI ? ' <span class="ai-badge">✦ AI</span>' : ""}${loadingBadge}`;
   elements.posterCard.style.setProperty("--accent", film.accent);
   elements.posterMood.textContent = `mood2movie · ${mood.label}`;
   elements.posterTitle.textContent = film.title;
@@ -593,8 +618,22 @@ function renderMovie() {
   }
   elements.movieReason.textContent = film.reason;
   elements.movieSynopsis.textContent = film.synopsis;
-  elements.trailerLink.href = trailerUrl(film);
   if (elements.doubanLink) elements.doubanLink.href = doubanUrl(film);
+
+  // 原著：改编自书籍则链接到豆瓣读书，否则标注原创剧本
+  if (elements.bookLink) {
+    if (film.book) {
+      elements.bookLink.textContent = `原著《${film.book}》`;
+      elements.bookLink.href = `https://search.douban.com/book/subject_search?search_text=${encodeURIComponent(film.book)}`;
+      elements.bookLink.classList.remove("is-disabled");
+      elements.bookLink.removeAttribute("aria-disabled");
+    } else {
+      elements.bookLink.textContent = "原创剧本";
+      elements.bookLink.removeAttribute("href");
+      elements.bookLink.classList.add("is-disabled");
+      elements.bookLink.setAttribute("aria-disabled", "true");
+    }
+  }
 
   // Poster and title click through to Douban movie page
   const douban = doubanUrl(film);
@@ -839,10 +878,6 @@ function loadFavorites() {
 
 function saveFavorites() {
   localStorage.setItem("mood2movie:favorites", JSON.stringify(state.favorites));
-}
-
-function trailerUrl(film) {
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${film.original || film.title} official trailer`)}`;
 }
 
 function doubanUrl(film) {
